@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Savings Target App</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #0b0b0b;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+
+  .container {
+    text-align: center;
+  }
+
+  .circle-wrap {
+    position: relative;
+    width: 200px;
+    margin: 20px auto;
+  }
+
+  .circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .progress-ring__circle {
+    transition: 0.35s stroke-dashoffset;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  .actions {
+    margin-top: 20px;
+  }
+
+  .actions input {
+    padding: 10px;
+    width: 200px;
+    border-radius: 5px;
+    border: none;
+  }
+
+  .actions button {
+    padding: 10px 15px;
+    margin-left: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Savings Target</h1>
+
+  <div class="circle-wrap">
+    <svg class="progress-ring" width="200" height="200">
+      <circle class="progress-ring__circle-bg" stroke="#eee" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
+      <circle class="progress-ring__circle" stroke="#4CAF50" stroke-width="12" fill="transparent" r="90" cx="100" cy="100"/>
+    </svg>
+    <div class="circle-text">
+      <div id="current">₹0</div>
+      <div>of ₹25,00,000</div>
+    </div>
+  </div>
+
+  <div class="info">
+    <div>Remaining: <span id="remaining">₹25,00,000</span></div>
+  </div>
+
+  <div class="actions">
+    <input type="number" id="amount" placeholder="Enter amount">
+    <button id="addBtn">Add Money</button>
+    <button id="removeBtn">Remove Money</button>
+  </div>
+</div>
+
+<script>
+  const LIMIT = 2500000; // 25 lakhs
+  let currentAmount = 0;
+
+  const circle = document.querySelector('.progress-ring__circle');
+  const radius = circle.r.baseVal.value;
+  const circumference = 2 * Math.PI * radius;
+
+  circle.style.strokeDasharray = `${circumference} ${circumference}`;
+  circle.style.strokeDashoffset = circumference;
+
+  const currentEl = document.getElementById('current');
+  const remainingEl = document.getElementById('remaining');
+
+  function setProgress(amount) {
+    const percent = (amount / LIMIT) * 100;
+    const offset = circumference - (percent / 100) * circumference;
+    circle.style.strokeDashoffset = offset;
+  }
+
+  function updateUI() {
+    currentEl.innerText = `₹${currentAmount.toLocaleString()}`;
+    remainingEl.innerText = `₹${(LIMIT - currentAmount).toLocaleString()}`;
+    setProgress(currentAmount);
+  }
+
+  // fetch current amount from MongoDB on load
+  async function fetchSavings() {
+    const res = await fetch("http://localhost:3000/api/savings");
+    const data = await res.json();
+    currentAmount = data.currentAmount || 0;
+    updateUI();
+  }
+
+  async function saveSavings() {
+    await fetch("http://localhost:3000/api/savings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentAmount }),
+    });
+  }
+
+  document.getElementById('addBtn').addEventListener('click', async () => {
+    const val = Number(document.getElementById('amount').value);
+    if (!val || val <= 0) return;
+    currentAmount += val;
+    if (currentAmount > LIMIT) currentAmount = LIMIT;
+    updateUI();
+    await saveSavings(); // update in MongoDB
+  });
+
+  document.getElementById('removeBtn').addEventListener('click', async () => {
+    const val = Number(document.getElementById('amount').value);
+    if (!val || val <= 0) return;
+    currentAmount -= val;
+    if (currentAmount < 0) currentAmount = 0;
+    updateUI();
+    await saveSavings(); // update in MongoDB
+  });
+
+  fetchSavings();
+</script>
+
+
+</body>
+</html>
