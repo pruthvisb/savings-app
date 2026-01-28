@@ -7,7 +7,7 @@ app.use(express.json());
 app.use(cors());
 
 mongoose.connect(
-  "mongodb+srv://astrocluster1:Pruthvi19@savings.gd1nzxj.mongodb.net/",
+  "mongodb+srv://astrocluster1:Pruthvi19@savings.gd1nzxj.mongodb.net/?appName=savings",
   {
     useNewUrlParser: true,
     useUnifiedTopology: true,
